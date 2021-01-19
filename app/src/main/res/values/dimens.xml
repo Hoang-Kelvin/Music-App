@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="itemTextSize">20sp</dimen>
+    <dimen name="itemHeight">50dp</dimen>
+    <dimen name="infoHeight">30dp</dimen>
+    <dimen name="viewHeight">100dp</dimen>
+</resources>
