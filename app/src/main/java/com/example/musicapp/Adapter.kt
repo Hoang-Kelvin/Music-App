@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
-class Adapter(var listSong: ArrayList<Song>, private var mainActivity: MainActivity) :
+class Adapter(var listSong: List<Song>, private var mainActivity: MainActivity) :
     RecyclerView.Adapter<Adapter.ViewHolder>() {
     var currentPosition = 0
 

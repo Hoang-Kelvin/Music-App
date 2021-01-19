@@ -1,7 +1,6 @@
 package com.example.musicapp
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -15,7 +14,6 @@ import android.provider.MediaStore
 import android.view.View
 import android.widget.*
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.Timer
 import java.util.TimerTask
@@ -26,11 +24,11 @@ data class Song(val id: Int, val title: String, val duration: Int)
 
 class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface,
     View.OnClickListener {
-    private val mListSong: ArrayList<Song> = ArrayList()
+    private val listSong: MutableList<Song> = ArrayList()
 
     private lateinit var adapter: Adapter
+    private lateinit var mService: MusicService
     private lateinit var musicPresenter: MusicPresenter
-    private var mService: MusicService = MusicService()
 
     private var isBind = false
 
@@ -38,8 +36,9 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface,
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as MusicService.SongBinder
             mService = binder.getService()
-            mService.bindList(mListSong)
+            mService.bindList(listSong)
             isBind = true
+            musicPresenter = MusicPresenter(this@MainActivity, mService, listSong)
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -47,7 +46,6 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface,
         }
     }
 
-    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -59,14 +57,12 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface,
         songInfo.isSelected = true
 
         //Sort music list follow alphabet rule
-        mListSong.sortWith { a, b -> a.title.compareTo(b.title) }
-
+        listSong.sortedWith(compareBy({ it.title }, { it.title }))
+        
         //Add song's list to RecycleView and show it on screen
-        adapter = Adapter(mListSong, this)
-        musicPresenter = MusicPresenter(this, mService, mListSong)
+        adapter = Adapter(listSong, this)
         listItem.adapter = adapter
         listItem.layoutManager = LinearLayoutManager(this)
-
         //Now call the control behavior method
         songController()
     }
@@ -76,6 +72,7 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface,
         Intent(this, MusicService::class.java).also { intent ->
             bindService(intent, connection, Context.BIND_AUTO_CREATE)
         }
+
     }
 
     //Return a list of song when open an application, so
@@ -103,7 +100,7 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface,
             val title = musicCursor.getColumnIndex(MediaStore.Audio.Media.TITLE)
             val duration = musicCursor.getColumnIndex(MediaStore.Audio.Media.DURATION)
             while (musicCursor.moveToNext()) {
-                mListSong.add(
+                listSong.add(
                     Song(
                         musicCursor.getInt(id),
                         musicCursor.getString(title),
@@ -117,7 +114,6 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface,
     //If song item was clicked, it will be played immediately
     //and set its duration to seek bar, the seek bar will auto-change
     //every 1 second to follow the song
-    @SuppressLint("SetTextI18n")
     override fun displaySong() {
         mService.mPosition = adapter.currentPosition
         mService.playSong()
@@ -133,7 +129,7 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface,
                 }
             }, 0, 1000)
         }
-        songInfo.text = "Playing " + mListSong[mService.mPosition].title
+        songInfo.text = getString(R.string.playing).plus(listSong[mService.mPosition].title)
     }
 
     private fun songController() {
@@ -143,13 +139,13 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface,
         buttonNext.setOnClickListener { onClick(it) }
         buttonPrev.setOnClickListener { onClick(it) }
         songDuration.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            @SuppressLint("SetTextI18n")
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 //Catch the SeekBar changed to rewind, fast forward or auto play next song
                 musicPresenter.handleSong(progress)
                 duration.text = musicPresenter.timeTracking()
                 if (mService.isNext) {
-                    songInfo.text = "Playing " + mListSong[mService.mPosition].title
+                    songInfo.text =
+                        getString(R.string.playing).plus(" " + listSong[mService.mPosition].title)
                     mService.isNext = false
                 }
             }
@@ -187,23 +183,22 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface,
             }
             R.id.buttonNext -> {
                 mService.mPosition++
-                if (mService.mPosition == mService.mSongs.size) mService.mPosition = 0
+                if (mService.mPosition == mService.songs.size) mService.mPosition = 0
                 resetPlayingState()
             }
             R.id.buttonPrev -> {
                 mService.mPosition--
-                if (mService.mPosition < 0) mService.mPosition = mService.mSongs.size - 1
+                if (mService.mPosition < 0) mService.mPosition = mService.songs.size - 1
                 resetPlayingState()
             }
         }
     }
 
-    @SuppressLint("SetTextI18n")
     private fun resetPlayingState() {
         songDuration.progress = 0
         mService.playSong()
         songDuration.max = musicPresenter.duration
-        songInfo.text = "Playing " + mListSong[mService.mPosition].title
+        songInfo.text = getString(R.string.playing).plus(" " + listSong[mService.mPosition].title)
     }
 
     override fun onDestroy() {
