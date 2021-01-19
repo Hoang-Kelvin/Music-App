@@ -11,18 +11,19 @@ import android.os.PowerManager
 import android.provider.MediaStore
 import android.util.Log
 
-class MusicService : Service(), MediaPlayer.OnErrorListener,
-        MediaPlayer.OnCompletionListener {
-    var mSongs: ArrayList<Song> = ArrayList()
+class MusicService() : Service(), MediaPlayer.OnErrorListener,
+    MediaPlayer.OnCompletionListener {
+
     private val mBinder = SongBinder()
+    var mSongs: ArrayList<Song> = ArrayList()
+    var mPlayer: MediaPlayer = MediaPlayer()
 
     var mPosition: Int = 0
-    var mPlayer: MediaPlayer = MediaPlayer()
     var isNext = false
 
-    override fun onBind(intent: Intent?): IBinder {
-        return mBinder
-    }
+    val bindList = fun(list: ArrayList<Song>) { mSongs = list }
+
+    override fun onBind(intent: Intent?): IBinder = mBinder
 
     override fun onUnbind(intent: Intent?): Boolean {
         mPlayer.stop()
@@ -47,14 +48,11 @@ class MusicService : Service(), MediaPlayer.OnErrorListener,
         fun getService(): MusicService = this@MusicService
     }
 
-    fun bindList(list: ArrayList<Song>) {
-        mSongs = list
-    }
-
     fun playSong() {
         mPlayer.reset()
         val currentSong = mSongs[mPosition].id.toLong()
-        val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, currentSong)
+        val uri =
+            ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, currentSong)
         try {
             mPlayer.setDataSource(applicationContext, uri)
         } catch (e: Exception) {

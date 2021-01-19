@@ -2,14 +2,10 @@ package com.example.musicapp
 
 import android.widget.MediaController
 
-class MusicPresenter(view: MusicInterface.View, service: MusicService, listSong: ArrayList<Song>) :
+class MusicPresenter(var mView: MusicInterface.View,var mService: MusicService,var mListSong: ArrayList<Song>) :
     MusicInterface.Presenter, MediaController.MediaPlayerControl {
-    private var playing = false
-    private var isPause = false
-
-    private var mService: MusicService = service
-    private var mView: MusicInterface.View = view
-    private val mListSong: ArrayList<Song> = listSong
+    var playing = false
+    var isPause = false
 
     override fun startNewSong() {
         mView.displaySong()

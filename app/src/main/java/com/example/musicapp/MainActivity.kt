@@ -12,9 +12,11 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.MediaStore
+import android.view.View
 import android.widget.*
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.android.synthetic.main.activity_main.*
 import java.util.Timer
 import java.util.TimerTask
 import kotlin.collections.ArrayList
@@ -22,25 +24,15 @@ import kotlin.concurrent.thread
 
 data class Song(val id: Int, val title: String, val duration: Int)
 
-class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface {
+class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface,
+    View.OnClickListener {
     private val mListSong: ArrayList<Song> = ArrayList()
 
-    private lateinit var mRecycleView: RecyclerView
-    private lateinit var mPlay: ImageView
-    private lateinit var mNext: ImageView
-    private lateinit var mPrev: ImageView
-    private lateinit var mSongDuration: SeekBar
-    private lateinit var mDuration: TextView
     private lateinit var adapter: Adapter
     private lateinit var musicPresenter: MusicPresenter
-
-    private var isBind = false
-    private var playing = false
-    private var isPause = false
-
     private var mService: MusicService = MusicService()
 
-    lateinit var songInfo: TextView
+    private var isBind = false
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -59,28 +51,21 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        mRecycleView = findViewById(R.id.listItem)
         supportActionBar?.hide()
         checkPermission()
         getSong()
 
         //get all View at the same time as app starting
-        mPlay = findViewById<ImageButton>(R.id.button_play)
-        mNext = findViewById<ImageButton>(R.id.button_next)
-        mPrev = findViewById<ImageButton>(R.id.button_prev)
-        mSongDuration = findViewById(R.id.songDuration)
-        mDuration = findViewById(R.id.duration)
-        songInfo = findViewById(R.id.songInfo)
         songInfo.isSelected = true
 
         //Sort music list follow alphabet rule
         mListSong.sortWith { a, b -> a.title.compareTo(b.title) }
 
         //Add song's list to RecycleView and show it on screen
-        adapter = Adapter(this, mListSong, this)
-        musicPresenter = MusicPresenter(this, mService,mListSong)
-        mRecycleView.adapter = adapter
-        mRecycleView.layoutManager = LinearLayoutManager(this)
+        adapter = Adapter(mListSong, this)
+        musicPresenter = MusicPresenter(this, mService, mListSong)
+        listItem.adapter = adapter
+        listItem.layoutManager = LinearLayoutManager(this)
 
         //Now call the control behavior method
         songController()
@@ -136,15 +121,15 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface {
     override fun displaySong() {
         mService.mPosition = adapter.currentPosition
         mService.playSong()
-        playing = true
-        mPlay.setImageResource(R.drawable.ic_pause)
+        musicPresenter.playing = true
+        buttonPlay.setImageResource(R.drawable.ic_pause)
         //Using other thread to show the change of SeekBar and current duration
         thread(start = true, name = "playingThread") {
             Timer().scheduleAtFixedRate(object : TimerTask() {
                 override fun run() {
-                    mSongDuration.progress = musicPresenter.currentPosition
-                    mDuration.text = musicPresenter.timeTracking()
-                    mSongDuration.max = musicPresenter.duration
+                    songDuration.progress = musicPresenter.currentPosition
+                    duration.text = musicPresenter.timeTracking()
+                    songDuration.max = musicPresenter.duration
                 }
             }, 0, 1000)
         }
@@ -152,29 +137,17 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface {
     }
 
     private fun songController() {
-        mPlay.setOnClickListener {
-            if (!playing) {
-                if (isPause) musicPresenter.start()
-                playing = true
-                mPlay.setImageResource(R.drawable.ic_pause)
-            } else {
-                musicPresenter.pause()
-                playing = false
-                mPlay.setImageResource(R.drawable.ic_play)
-            }
-        }
-        mNext.setOnClickListener {
-            playNext()
-        }
-        mPrev.setOnClickListener {
-            playPrev()
-        }
-        mSongDuration.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+
+        //button.setOnClickListener { this } not working
+        buttonPlay.setOnClickListener { onClick(it) }
+        buttonNext.setOnClickListener { onClick(it) }
+        buttonPrev.setOnClickListener { onClick(it) }
+        songDuration.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             @SuppressLint("SetTextI18n")
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 //Catch the SeekBar changed to rewind, fast forward or auto play next song
                 musicPresenter.handleSong(progress)
-                mDuration.text = musicPresenter.timeTracking()
+                duration.text = musicPresenter.timeTracking()
                 if (mService.isNext) {
                     songInfo.text = "Playing " + mListSong[mService.mPosition].title
                     mService.isNext = false
@@ -199,24 +172,37 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface {
         }
     }
 
-
-    @SuppressLint("SetTextI18n")
-    private fun playNext() {
-        mService.mPosition++
-        if (mService.mPosition == mService.mSongs.size) mService.mPosition = 0
-        mSongDuration.progress = 0
-        mService.playSong()
-        mSongDuration.max = musicPresenter.duration
-        songInfo.text = "Playing " + mListSong[mService.mPosition].title
+    override fun onClick(v: View) {
+        when (v.id) {
+            R.id.buttonPlay -> {
+                if (!musicPresenter.playing) {
+                    if (musicPresenter.isPause) musicPresenter.start()
+                    musicPresenter.playing = true
+                    buttonPlay.setImageResource(R.drawable.ic_pause)
+                } else {
+                    musicPresenter.pause()
+                    musicPresenter.playing = false
+                    buttonPlay.setImageResource(R.drawable.ic_play)
+                }
+            }
+            R.id.buttonNext -> {
+                mService.mPosition++
+                if (mService.mPosition == mService.mSongs.size) mService.mPosition = 0
+                resetPlayingState()
+            }
+            R.id.buttonPrev -> {
+                mService.mPosition--
+                if (mService.mPosition < 0) mService.mPosition = mService.mSongs.size - 1
+                resetPlayingState()
+            }
+        }
     }
 
     @SuppressLint("SetTextI18n")
-    private fun playPrev() {
-        mService.mPosition--
-        if (mService.mPosition < 0) mService.mPosition = mService.mSongs.size - 1
-        mSongDuration.progress = 0
+    private fun resetPlayingState() {
+        songDuration.progress = 0
         mService.playSong()
-        mSongDuration.max = musicPresenter.duration
+        songDuration.max = musicPresenter.duration
         songInfo.text = "Playing " + mListSong[mService.mPosition].title
     }
 
@@ -225,6 +211,4 @@ class MainActivity : AppCompatActivity(), MusicInterface.View, MusicInterface {
         unbindService(connection)
         isBind = false
     }
-
-
 }
