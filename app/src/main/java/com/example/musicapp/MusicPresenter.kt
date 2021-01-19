@@ -2,17 +2,16 @@ package com.example.musicapp
 
 import android.widget.MediaController
 
-class MusicPresenter(view: MusicInterface.View, service: MusicService, listSong: ArrayList<Song>) :
-    MusicInterface.Presenter, MediaController.MediaPlayerControl {
-    private var playing = false
-    private var isPause = false
-
-    private var mService: MusicService = service
-    private var mView: MusicInterface.View = view
-    private val mListSong: ArrayList<Song> = listSong
+class MusicPresenter(
+    var view: MusicInterface.View,
+    var mService: MusicService,
+    var listSong: List<Song>
+) : MusicInterface.Presenter, MediaController.MediaPlayerControl {
+    var playing = false
+    var isPause = false
 
     override fun startNewSong() {
-        mView.displaySong()
+        view.displaySong()
     }
 
     fun timeTracking(): String {
@@ -28,24 +27,25 @@ class MusicPresenter(view: MusicInterface.View, service: MusicService, listSong:
 
     override fun start() {
         isPause = false
-        mService.mPlayer.start()
+        mService.player?.start()
     }
 
     override fun pause() {
         isPause = true
-        mService.mPlayer.pause()
+        mService.player?.pause()
     }
 
     override fun getDuration(): Int {
-        return mListSong[mService.mPosition].duration
+        return listSong[mService.mPosition].duration
     }
 
     override fun getCurrentPosition(): Int {
-        return mService.mPlayer.currentPosition
+        val player = mService.player
+        return player?.currentPosition ?: 0
     }
 
     override fun seekTo(pos: Int) {
-        mService.mPlayer.seekTo(pos)
+        mService.player?.seekTo(pos)
     }
 
     override fun isPlaying(): Boolean {
@@ -69,6 +69,7 @@ class MusicPresenter(view: MusicInterface.View, service: MusicService, listSong:
     }
 
     override fun getAudioSessionId(): Int {
-        return mService.mPlayer.audioSessionId
+        val player = mService.player
+        return player?.audioSessionId ?: 0
     }
 }

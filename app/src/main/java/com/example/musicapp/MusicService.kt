@@ -11,57 +11,56 @@ import android.os.PowerManager
 import android.provider.MediaStore
 import android.util.Log
 
-class MusicService : Service(), MediaPlayer.OnErrorListener,
-        MediaPlayer.OnCompletionListener {
-    var mSongs: ArrayList<Song> = ArrayList()
+class MusicService() : Service(), MediaPlayer.OnErrorListener,
+    MediaPlayer.OnCompletionListener {
+
     private val mBinder = SongBinder()
+    var songs: List<Song> = ArrayList()
+    lateinit var player: MediaPlayer
 
     var mPosition: Int = 0
-    var mPlayer: MediaPlayer = MediaPlayer()
     var isNext = false
 
-    override fun onBind(intent: Intent?): IBinder {
-        return mBinder
-    }
+    val bindList = fun(list: List<Song>) { songs = list }
+
+    override fun onBind(intent: Intent?): IBinder = mBinder
 
     override fun onUnbind(intent: Intent?): Boolean {
-        mPlayer.stop()
-        mPlayer.release()
+        player.stop()
+        player.release()
         return false
     }
 
     override fun onCreate() {
         super.onCreate()
+        player = MediaPlayer()
         initMusicPlayer()
     }
 
     private fun initMusicPlayer() {
-        mPlayer.setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
-        mPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC)
-        mPlayer.setOnCompletionListener(this)
-        mPlayer.setOnErrorListener(this)
-        mPlayer.isLooping = true
+        player.setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
+        player.setAudioStreamType(AudioManager.STREAM_MUSIC)
+        player.setOnCompletionListener(this)
+        player.setOnErrorListener(this)
+        player.isLooping = true
     }
 
     inner class SongBinder : Binder() {
         fun getService(): MusicService = this@MusicService
     }
 
-    fun bindList(list: ArrayList<Song>) {
-        mSongs = list
-    }
-
     fun playSong() {
-        mPlayer.reset()
-        val currentSong = mSongs[mPosition].id.toLong()
-        val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, currentSong)
+        player.reset()
+        val currentSong = songs[mPosition].id.toLong()
+        val uri =
+            ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, currentSong)
         try {
-            mPlayer.setDataSource(applicationContext, uri)
+            player.setDataSource(applicationContext, uri)
         } catch (e: Exception) {
             Log.e("MUSIC SERVICE", "Error setting data source", e)
         }
-        mPlayer.setOnPreparedListener { mp -> mp?.start() }
-        mPlayer.prepare()
+        player.setOnPreparedListener { mp -> mp?.start() }
+        player.prepare()
     }
 
     override fun onError(mp: MediaPlayer?, what: Int, extra: Int): Boolean {
@@ -71,7 +70,7 @@ class MusicService : Service(), MediaPlayer.OnErrorListener,
 
     override fun onCompletion(mp: MediaPlayer?) {
         mPosition++
-        if (mPosition == mSongs.size) mPosition = 0
+        if (mPosition == songs.size) mPosition = 0
         playSong()
         isNext = true
     }
