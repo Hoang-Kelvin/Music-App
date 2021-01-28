@@ -3,13 +3,18 @@ package com.name.name.musicappmvp.data.source.local
 import android.content.Context
 import android.os.Build
 import android.provider.MediaStore
-import com.name.name.musicappmvp.data.model.LocalSong
+import com.name.name.musicappmvp.data.model.Song
+import com.name.name.musicappmvp.data.repository.TakeSongFromLocal
 import com.name.name.musicappmvp.data.source.LocalSongDataSource
 import com.name.name.musicappmvp.data.source.OnGotListCallback
 
 class LocalSource(private val context: Context) : LocalSongDataSource.Local {
-    override fun getLocalSong(callback: OnGotListCallback): MutableList<LocalSong> {
-        val listSong = mutableListOf<LocalSong>()
+    override fun getLocalSong(callback: OnGotListCallback) {
+        TakeSongFromLocal(callback, ::getSong).execute()
+    }
+
+    private fun getSong(): List<Song> {
+        val listSong = mutableListOf<Song>()
         val uri =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 MediaStore.Audio.Media.getContentUri(
@@ -32,7 +37,7 @@ class LocalSource(private val context: Context) : LocalSongDataSource.Local {
             val duration = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION)
             while (cursor.moveToNext()) {
                 listSong.add(
-                    LocalSong(
+                    Song(
                         cursor.getInt(id),
                         cursor.getString(title),
                         cursor.getInt(duration)

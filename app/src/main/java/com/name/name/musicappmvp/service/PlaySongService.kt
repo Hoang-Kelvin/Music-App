@@ -12,7 +12,7 @@ import android.os.PowerManager
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.MediaController
-import com.name.name.musicappmvp.data.model.LocalSong
+import com.name.name.musicappmvp.data.model.Song
 import com.name.name.musicappmvp.ultis.ChannelEntity
 import com.name.name.musicappmvp.ultis.DataManager
 import com.name.name.musicappmvp.ultis.DataManager.position
@@ -24,12 +24,12 @@ class PlaySongService : Service(), MediaPlayer.OnErrorListener, MediaPlayer.OnCo
     private var notificationChannel: NotificationChannel? = null
 
     private var player = DataManager.player
-    private var listSong = mutableListOf<LocalSong>()
+    private var listSong = mutableListOf<Song>()
     var isPause = false
     var playing = false
     var isNext = false
 
-    val bindList = fun(list: MutableList<LocalSong>) { listSong = list }
+    val bindList = fun(list: MutableList<Song>) { listSong = list }
 
     inner class SongBinder : Binder() {
         fun getService(): PlaySongService = this@PlaySongService
@@ -94,6 +94,7 @@ class PlaySongService : Service(), MediaPlayer.OnErrorListener, MediaPlayer.OnCo
     override fun onDestroy() {
         super.onDestroy()
         stopForeground(true)
+        player.release()
     }
 
     private fun initMusicPlayer() {

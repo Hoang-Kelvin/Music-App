@@ -14,7 +14,7 @@ import android.view.View
 import android.widget.SeekBar
 import android.widget.SeekBar.*
 import com.name.name.musicappmvp.R
-import com.name.name.musicappmvp.data.model.LocalSong
+import com.name.name.musicappmvp.data.model.Song
 import com.name.name.musicappmvp.data.repository.LocalSongRepository
 import com.name.name.musicappmvp.data.source.local.LocalSource
 import com.name.name.musicappmvp.service.PlaySongService
@@ -25,7 +25,7 @@ import java.util.*
 import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, MainLocalMusicContract.View {
-    private var localSongs = mutableListOf<LocalSong>()
+    private var localSongs = mutableListOf<Song>()
     private var isBind = false
     private var mainLocalMusicPresenter: MainLocalMusicContract.Presenter? = null
     private var playSongService: PlaySongService? = null
@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, MainLocalMusicCo
                 LocalSongRepository.getInstanceRepository(LocalSource.getInstanceLocalSource(this))
             )
         handleButton()
-        displayLocalSong()
+        mainLocalMusicPresenter?.getAllLocalSong()
     }
 
     override fun onStart() {
@@ -80,6 +80,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, MainLocalMusicCo
                 resetPlayingState()
             }
         }
+    }
+
+    override fun displayLocalSong(list: List<Song>) {
+        localSongs = list.toMutableList()
+        localSongs.sortWith(compareBy({ it.title }, { it.title }))
+        localMusicAdapter.sendList(localSongs)
+        recyclerSongs.adapter = localMusicAdapter
     }
 
     override fun setPlayButton() {
@@ -154,13 +161,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, MainLocalMusicCo
                 requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 1)
             }
         }
-    }
-
-    private fun displayLocalSong() {
-        localSongs = mainLocalMusicPresenter?.getAllLocalSong()?.toMutableList()!!
-        localSongs.sortWith(compareBy({ it.title }, { it.title }))
-        localMusicAdapter.sendList(localSongs)
-        recyclerSongs.adapter = localMusicAdapter
     }
 
     private fun setPlayingState(boolean: Boolean) {

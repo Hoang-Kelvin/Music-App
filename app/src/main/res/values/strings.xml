@@ -3,4 +3,5 @@
     <string name="text_start_time">0:00</string>
     <string name="text_playing_state">Playing %s</string>
     <string name="notify_playing_state">Playing</string>
+    <string name="get_fail_status">Something wrong while getting list of Song</string>
 </resources>
