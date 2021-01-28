@@ -7,7 +7,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.name.name.musicappmvp.R
 import com.name.name.musicappmvp.data.model.LocalSong
-import com.name.name.musicappmvp.service.PlaySongService
+import com.name.name.musicappmvp.ultis.DataManager
 import kotlinx.android.synthetic.main.item_music.view.*
 
 class LocalMusicAdapter(var onItemClick: () -> Unit) : RecyclerView.Adapter<ViewHolder>() {
@@ -21,12 +21,13 @@ class LocalMusicAdapter(var onItemClick: () -> Unit) : RecyclerView.Adapter<View
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val currentSong = listOfSong[position]
-//        holder.songView.text = currentSong.title
-//        holder.itemView.setOnClickListener {
-//            PlaySongService.position = position
-//            onItemClick()
-//        }
+        holder.initializeView(currentSong)
+        holder.itemView.setOnClickListener {
+            DataManager.position = position
+            onItemClick()
+        }
     }
+
     override fun getItemCount(): Int = listOfSong.size
 
     fun sendList(list: List<LocalSong>) {
@@ -36,5 +37,9 @@ class LocalMusicAdapter(var onItemClick: () -> Unit) : RecyclerView.Adapter<View
 }
 
 class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-    val songView: TextView = itemView.song
+    private val songView: TextView = itemView.song
+    fun initializeView(song: LocalSong) {
+        songView.text = song.title
+        itemView
+    }
 }

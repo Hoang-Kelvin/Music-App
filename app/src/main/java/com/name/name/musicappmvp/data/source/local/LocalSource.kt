@@ -4,10 +4,11 @@ import android.content.Context
 import android.os.Build
 import android.provider.MediaStore
 import com.name.name.musicappmvp.data.model.LocalSong
-import com.name.name.musicappmvp.data.source.SongDataSource
+import com.name.name.musicappmvp.data.source.LocalSongDataSource
+import com.name.name.musicappmvp.data.source.OnGotListCallback
 
-class LocalSource : SongDataSource.Local {
-    override fun getLocalSong(context:Context): MutableList<LocalSong> {
+class LocalSource(private val context: Context) : LocalSongDataSource.Local {
+    override fun getLocalSong(callback: OnGotListCallback): MutableList<LocalSong> {
         val listSong = mutableListOf<LocalSong>()
         val uri =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -42,4 +43,10 @@ class LocalSource : SongDataSource.Local {
         return listSong
     }
 
+    companion object {
+        private var instance: LocalSource? = null
+
+        fun getInstanceLocalSource(context: Context) =
+            instance ?: LocalSource(context).also { instance = it }
+    }
 }

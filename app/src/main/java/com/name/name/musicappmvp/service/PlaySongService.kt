@@ -1,8 +1,8 @@
 package com.name.name.musicappmvp.service
 
-import android.app.NotificationManager
 import android.app.Service
 import android.content.ContentUris
+import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
 import android.media.MediaPlayer
@@ -15,12 +15,13 @@ import android.widget.MediaController
 import com.name.name.musicappmvp.data.model.LocalSong
 import com.name.name.musicappmvp.ultis.ChannelEntity
 import com.name.name.musicappmvp.ultis.DataManager
+import com.name.name.musicappmvp.ultis.DataManager.position
 import java.lang.Exception
 
 class PlaySongService : Service(), MediaPlayer.OnErrorListener, MediaPlayer.OnCompletionListener,
     MediaController.MediaPlayerControl {
     private val binder = SongBinder()
-    private var notificationChannel:NotificationChannel? = null
+    private var notificationChannel: NotificationChannel? = null
 
     private var player = DataManager.player
     private var listSong = mutableListOf<LocalSong>()
@@ -29,11 +30,6 @@ class PlaySongService : Service(), MediaPlayer.OnErrorListener, MediaPlayer.OnCo
     var isNext = false
 
     val bindList = fun(list: MutableList<LocalSong>) { listSong = list }
-
-    companion object {
-        var position = 0
-
-    }
 
     inner class SongBinder : Binder() {
         fun getService(): PlaySongService = this@PlaySongService
@@ -108,9 +104,9 @@ class PlaySongService : Service(), MediaPlayer.OnErrorListener, MediaPlayer.OnCo
         player.isLooping = true
     }
 
-    private fun startNotification(){
-        notificationChannel?.songNotification(this,listSong[position].title)
-        startForeground(ChannelEntity.NOTIFY_ID,NotificationChannel.notification1)
+    private fun startNotification() {
+        notificationChannel?.songNotification(this, listSong[position].title)
+        startForeground(ChannelEntity.NOTIFY_ID, NotificationChannel.notification1)
     }
 
     fun playSong() {
@@ -126,6 +122,7 @@ class PlaySongService : Service(), MediaPlayer.OnErrorListener, MediaPlayer.OnCo
         player.setOnPreparedListener { mp -> mp.start() }
         player.prepare()
         startNotification()
+        playing = true
     }
 
     fun timeTracking(): String {
@@ -138,5 +135,8 @@ class PlaySongService : Service(), MediaPlayer.OnErrorListener, MediaPlayer.OnCo
     fun rewind(progress: Int) {
         if (progress > currentPosition + 1500 || progress < currentPosition - 1500) seekTo(progress)
     }
-}
 
+    companion object {
+        fun getIntent(context: Context): Intent = Intent(context, PlaySongService::class.java)
+    }
+}
